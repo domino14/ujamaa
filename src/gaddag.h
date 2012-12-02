@@ -4,5 +4,5 @@
 #include <stdio.h>
 
 void gaddag(void);
-
+void gen_gaddag(char* filename);
 #endif
