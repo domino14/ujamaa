@@ -1,0 +1,7 @@
+makegaddag
+ujamaa
+ujamaa.sublime-project
+ujamaa.sublime-workspace
+*.o
+*.out
+words/OWL2.txt
