@@ -9,8 +9,8 @@
 #define FALSE 0
 #define NUM_LETTERS 26
 #define DEBUG FALSE
-#define MAX_NODES 4000000
-#define MAX_ARCS 3000000
+#define MAX_NODES 3000000
+#define MAX_ARCS 4000000
 
 
 struct Node {
@@ -224,6 +224,34 @@ int get_words(char* filename, char words[][16]) {
     return numWords;
 }
 
+char* append_char(char* word, char c) {
+    // appends char c to the end of word
+    int length = strlen(word);
+    word[length] = c;
+    word[length + 1] = '\0';
+    return word;
+}
+
+void depth_first_search(NODE* root) {
+    int i, j;
+    char letter;
+    char word[17] = "";  // 15 max length, $ and \0
+    char* letterSet;
+    for (i = 0; i < root->numArcs; i++) {
+        word = append_char(word, root->arcs[i]->letter);
+        letterSet = root->arcs[i]->destination->letterSet;
+        for (j = 0; j < NUM_LETTERS; j++) {
+            if (letterSet[j]) {
+                letter = 'A' + j;
+                word = append_char(word, letter);
+            }
+        }
+    }
+}
+
+void test_gaddag(char words[][16], int numWords, NODE* root) {
+}
+
 void gen_gaddag(char* filename) {
     char words[300000][16];
     int numWords;
@@ -273,6 +301,7 @@ void gen_gaddag(char* filename) {
         }
     }
     printf("Allocated arcs: %d states: %d\n", allocArcs, allocStates);
+    test_gaddag(words, numWords, initialState);
 }
 
 // bugs in Gordon's algorithm:
@@ -280,3 +309,13 @@ void gen_gaddag(char* filename) {
 // - letters should be stored in state, not arc. else we have a problem:
 // some arcs pointing to the same node do not get their letterSets updated.
 // (work out simple CARE example w/algorithm)
+
+int main(int argc, char **argv)
+{
+    if (argc != 2) {
+        printf("usage: %s [argument]\n", argv[0]);
+    } else {
+        gen_gaddag(argv[1]);
+    }
+    return 0;
+}
