@@ -4,7 +4,6 @@
 #include <ctype.h>
 #include <assert.h>
 #include <stdint.h>
-#include "hashtab.h"
 
 #define SEPARATION_TOKEN '$'
 #define TRUE 1
@@ -37,15 +36,15 @@ ARC* arcArr[MAX_ARCS];
 NODE *initialState;
 
 uint32_t allocArcs = 0, allocStates = 0;
-hashtable_t *nodeHashTable;
 
 uint32_t findNodeInArray(NODE* node) {
-    char key[16];
-    uint32_t value;
-    sprintf(key, "%p", node);
-    value = atoi(ht_get(nodeHashTable, key));
-    assert(nodeArr[value] == node);
-    return value;
+    uint32_t i;
+    for (i = 0; i < allocStates; i++) {
+        if (nodeArr[i] == node) {
+            return i;
+        }
+    }
+    assert(0);
 }
 
 char containsLetter(NODE* node, char c) {
@@ -84,11 +83,6 @@ NODE* createNode() {
     newNode->arcs = NULL;
     newNode->numArcs = 0;
     nodeArr[allocStates] = newNode;
-    char key[16];
-    char value[8];
-    sprintf(key, "%p", newNode);
-    sprintf(value, "%d", allocStates);
-    ht_set(nodeHashTable, key, value);
     allocStates++;
     return newNode;
 }
@@ -345,7 +339,6 @@ void gen_gaddag(char* filename) {
         strcpy(words[0], "CAREEN");
         strcpy(words[1], "CARREL");
     }
-    nodeHashTable = ht_create(1048576);
 
     initialState = createNode();
     for (i = 0; i < numWords; i++) {

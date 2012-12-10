@@ -16,5 +16,5 @@ $(EXECUTABLE): $(OBJECTS)
 clean:
 	rm -rf src/*.o src/makegaddag/*.o $(EXECUTABLE) makegaddag
 
-makegaddag: src/makegaddag/gaddag.o src/makegaddag/hashtab.o
+makegaddag: src/makegaddag/gaddag.o
 	$(CC) src/makegaddag/*.o -o $@
