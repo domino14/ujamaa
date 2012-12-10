@@ -40,7 +40,7 @@ uint32_t allocArcs = 0, allocStates = 0;
 hashtable_t *nodeHashTable;
 
 uint32_t findNodeInArray(NODE* node) {
-    char key[20];
+    char key[16];
     uint32_t value;
     sprintf(key, "%p", node);
     value = atoi(ht_get(nodeHashTable, key));
@@ -84,8 +84,8 @@ NODE* createNode() {
     newNode->arcs = NULL;
     newNode->numArcs = 0;
     nodeArr[allocStates] = newNode;
-    char key[20];
-    char value[20];
+    char key[16];
+    char value[8];
     sprintf(key, "%p", newNode);
     sprintf(value, "%d", allocStates);
     ht_set(nodeHashTable, key, value);
@@ -345,10 +345,13 @@ void gen_gaddag(char* filename) {
         strcpy(words[0], "CAREEN");
         strcpy(words[1], "CARREL");
     }
+    nodeHashTable = ht_create(1048576);
 
     initialState = createNode();
-    nodeHashTable = ht_create(65536);
     for (i = 0; i < numWords; i++) {
+        if (i % 10000 == 0) {
+            printf("%d...\n", i);
+        }
         st = initialState;
         if (DEBUG) {
             printf("%s\n", words[i]);

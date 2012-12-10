@@ -1,11 +1,14 @@
-#define _XOPEN_SOURCE 500 /* Enable certain library functions (strdup) on linux.  See feature_test_macros(7) */
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <limits.h>
 #include <string.h>
 #include "hashtab.h"
 
+char *my_strdup(const char *s) {
+    char *p = malloc(strlen(s) + 1);
+    if(p) { strcpy(p, s); }
+    return p;
+}
 
 /* Create a new hashtable. */
 hashtable_t *ht_create( int size ) {
@@ -57,11 +60,11 @@ entry_t *ht_newpair( char *key, char *value ) {
         return NULL;
     }
 
-    if( ( newpair->key = strdup( key ) ) == NULL ) {
+    if( ( newpair->key = my_strdup( key ) ) == NULL ) {
         return NULL;
     }
 
-    if( ( newpair->value = strdup( value ) ) == NULL ) {
+    if( ( newpair->value = my_strdup( value ) ) == NULL ) {
         return NULL;
     }
 
@@ -90,7 +93,7 @@ void ht_set( hashtable_t *hashtable, char *key, char *value ) {
     if( next != NULL && next->key != NULL && strcmp( key, next->key ) == 0 ) {
 
         free( next->value );
-        next->value = strdup( value );
+        next->value = my_strdup( value );
 
     /* Nope, could't find it.  Time to grow a pair. */
     } else {

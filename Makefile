@@ -17,4 +17,4 @@ clean:
 	rm -rf src/*.o src/makegaddag/*.o $(EXECUTABLE) makegaddag
 
 makegaddag: src/makegaddag/gaddag.o src/makegaddag/hashtab.o
-	$(CC) src/makegaddag/gaddag.o -o $@
+	$(CC) src/makegaddag/*.o -o $@
