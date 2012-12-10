@@ -14,7 +14,7 @@ $(EXECUTABLE): $(OBJECTS)
 	$(CC) $(CFLAGS) $< -o $@
 
 clean:
-	rm -rf src/*.o $(EXECUTABLE) makegaddag
+	rm -rf src/*.o src/makegaddag/*.o $(EXECUTABLE) makegaddag
 
-makegaddag: src/makegaddag/gaddag.o
+makegaddag: src/makegaddag/gaddag.o src/makegaddag/hashtab.o
 	$(CC) src/makegaddag/gaddag.o -o $@
