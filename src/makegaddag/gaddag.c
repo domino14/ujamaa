@@ -5,7 +5,7 @@
 #include <assert.h>
 #include <stdint.h>
 
-#define SEPARATION_TOKEN '$'
+#define SEPARATION_TOKEN '^'
 #define TRUE 1
 #define FALSE 0
 #define NUM_LETTERS 26
@@ -19,6 +19,7 @@ struct Node {
     uint8_t numArcs;
     // letterSet is a bit vector where 0 is A and 25 is Z
     uint32_t letterSet;
+    uint32_t serializedIndex;
 };
 
 struct Arc {
@@ -235,7 +236,7 @@ int get_words(char* filename, char words[][16]) {
 // void depth_first_search(NODE* root) {
 //     int i, j;
 //     char letter;
-//     char word[17] = "";  // 15 max length, $ and \0
+//     char word[17] = "";  // 15 max length, ^ and \0
 //     char* letterSet;
 //     for (i = 0; i < root->numArcs; i++) {
 //         word = append_char(word, root->arcs[i]->letter);
@@ -270,30 +271,15 @@ void serialize_node(uint32_t *bitVector, uint32_t *letterSet, NODE* node) {
     (*letterSet) = node->letterSet;
 }
 
-char nodesShouldMerge(NODE* node1, NODE* node2) {
-    // nodes should merge if they have the same arcs and letterSet
-    if (node1->letterSet != node2->letterSet) {
-        return FALSE;
-    }
-    if (node1->numArcs != node2->numArcs) {
-        return FALSE;
-    }
-    int a1, a2;
-    for (a1 = 0; a1 < node1->numArcs; a1++) {
-        char foundLetterMatch = FALSE;
-        for (a2 = 0; a2 < node2->numArcs; a2++) {
-            if (node1->arcs[a1]->letter == node2->arcs[a2]->letter) {
-                foundLetterMatch = TRUE;
-                return nodesShouldMerge(node1->arcs[a1]->destination,
-                                        node2->arcs[a2]->destination);
-            }
-        }
-        if (!foundLetterMatch) {
-            return FALSE;
-        }
-    }
-    // got all the way over here with no tests failing. nodes match.
-    return TRUE;
+int compare_arcs (const ARC *a, const ARC *b)
+{
+  int temp = *a->letter - *b->letter;
+  if (temp > 0)
+    return 1;
+  else if (temp < 0)
+    return -1;
+  else
+    return 0;
 }
 
 
@@ -302,25 +288,47 @@ void save_gaddag(char* filename) {
     // this is an ugly way that works. whatever.
     // would be significantly sped up if "findNodeInArray"
     // were to use hash tables.
-    FILE* fp = fopen(filename, "wb");
     NODE* node;
     ARC* arc;
-    int i;
-    printf("expected: %d bytes\n", 4 + allocStates * 4 + 4 + allocArcs * 9);
-    fwrite(&allocStates, sizeof(uint32_t), 1, fp);
+    void** serialized;
+    int num_elements = allocStates * 2 + allocArcs;
+    int i, j;
+    serialized = malloc(sizeof(uint32_t*) * num_elements);
+    // note, this assumes a pointer's size is at least as big as a uint32_t
+    // this should be true for pretty much every modern computer out there...
+    int32_t bitVector, letterSet;
+    int idx = 0;
     for (i = 0; i < allocStates; i++) {
         node = nodeArr[i];
-        fwrite(&(node->letterSet), sizeof(uint32_t), 1, fp);
+        serialize_node(&bitVector, &letterSet, node);
+        serialized[idx] = bitVector;
+        node->serializedIndex = idx;
+        idx++;
+        serialized[idx] = letterSet;
+        idx++;
+        // search for arc in letter order
+        // qsort is defined in stdlib.h
+        qsort(node->arcs, node->numArcs, sizeof(ARC*), compare_arcs);
+        // store the negative address of each node's "serializedIndex"
+        // so that we can dereference it later on the second pass-through.
+        for (j = 0; j < node->numArcs; j++) {
+            serialized[idx] = -&(node->arcs[j]->destination->serializedIndex);
+            idx++;
+        }
     }
-    fwrite(&allocArcs, sizeof(uint32_t), 1, fp);
-    for (i = 0; i < allocArcs; i++) {
-        arc = arcArr[i];
-        fwrite(&(arc->letter), sizeof(char), 1, fp);
-        uint32_t source = findNodeInArray(arc->source);
-        uint32_t destination = findNodeInArray(arc->destination);
-        fwrite(&source, sizeof(uint32_t), 1, fp);
-        fwrite(&destination, sizeof(uint32_t), 1, fp);
+
+    FILE* fp = fopen(filename, "wb");
+    for (i = 0; i < num_elements; i++) {
+        if (serialized[i] >= 0) {
+            fwrite(&(serialized[i]), sizeof(int32_t), 1, fp);
+        }
+        else {
+            // this is a pointer, dereference the negative and write to file
+            fwrite(&(*(-serialized[i])), sizeof(int32_t), 1, fp);
+        }
     }
+
+
 
     fclose(fp);
 }
@@ -356,7 +364,7 @@ void gen_gaddag(char* filename) {
         }
         st = AddFinalArc(st, words[i][1], words[i][0]);
 
-        // create path for an-1...a1$an
+        // create path for an-1...a1^an
         st = initialState;
         for (j = n - 2; j >= 0; j--) {
             st = AddArc(st, words[i][j]);

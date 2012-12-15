@@ -6,6 +6,7 @@ import sys
 import logging
 import struct
 import copy
+import json
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +27,7 @@ class Node:
         global nodes
         self.letterSet = set()
         self.arcs = {}
+        self.id = allocStates
         allocStates += 1
         nodes.append(self)
 
@@ -39,7 +41,7 @@ class Node:
         if self._contains_arc(c):
             foundArc = self.arcs[c]
         else:
-            foundArc = Arc(c)
+            foundArc = Arc(c, self)
             self.arcs[c] = foundArc
 
         return foundArc.destNode
@@ -59,27 +61,43 @@ class Node:
         #    self, c, forceState))
         if self._contains_arc(c) and self.arcs[c].destNode is not forceState:
             assert(False)
-        self.arcs[c] = Arc(c, forceState)
+        self.arcs[c] = Arc(c, self, forceState)
 
     def __str__(self):
-        return "[Node %s, letterSet: %s, arcs: %s]" % (
-            id(self), self.letterSet, self.arcs)
+        theseArcs = []
+        for arc in self.arcs:
+            theseArcs.append({
+                self.arcs[arc].id: "%s (%s -> %s)" % (
+                    self.arcs[arc].letter,
+                    self.arcs[arc].fromNode.id,
+                    self.arcs[arc].destNode.id)
+            })
+        obj = {'Node': self.id,
+               'letterSet': [letter for letter in self.letterSet],
+               'arcs': theseArcs}
+
+        return json.dumps(obj, indent=2)
 
 
 class Arc:
-    def __init__(self, c, toNode=None):
+    def __init__(self, c, fromNode, toNode=None):
         global allocArcs
         global arcs
         self.letter = c
         if toNode is None:
             toNode = Node()
         self.destNode = toNode
+        self.fromNode = fromNode
+        self.id = allocArcs
         allocArcs += 1
         arcs.append(self)
 
     def __str__(self):
-        return "[Arc %s, letter: %s, destNode: %s]" % (
-            id(self), self.letter, self.destNode)
+        obj = {'Arc': self.id,
+               'letter': self.letter,
+               'fromNode': self.fromNode.id,
+               'destNode': self.destNode.id}
+        return json.dumps(obj, indent=2)
 
 
 def get_words(filename):
@@ -94,6 +112,7 @@ def get_words(filename):
 def gen_gaddag(filename):
     words = get_words(filename)
     initialState = Node()
+    words = ['CARE', 'CARREL']
     i = 0
     for word in words:
         st = initialState
@@ -103,19 +122,19 @@ def gen_gaddag(filename):
             st = st.add_arc(word[j])
         st = st.add_final_arc(word[1], word[0])
 
-        # create path for an-1...a1$an
+        # create path for an-1...a1^an
         st = initialState
         for j in range(n - 2, -1, -1):
             st = st.add_arc(word[j])
 
-        st = st.add_final_arc('$', word[n - 1])
+        st = st.add_final_arc('^', word[n - 1])
 
         for m in range(n - 3, -1, -1):
             forceSt = st
             st = initialState
             for j in range(m, -1, -1):
                 st = st.add_arc(word[j])
-            st = st.add_arc('$')
+            st = st.add_arc('^')
             st.force_arc(word[m + 1], forceSt)
 
         i += 1
@@ -123,13 +142,15 @@ def gen_gaddag(filename):
             print i
 
     logger.info('States: %d, Arcs: %d' % (allocStates, allocArcs))
-    test_gaddag(words, initialState)
     save_gaddag('%s.gaddag' % filename)
+    #newState = load_gaddag('%s.gaddag' % filename)
+    #test_gaddag(words, newState)
+    test_gaddag(words, initialState)
 
 
 def generate_reprs_for_word(word):
-    """ generate every rev(x)$y where xy is a word and x is not empty
-        if y is empty, omit the $"""
+    """ generate every rev(x)^y where xy is a word and x is not empty
+        if y is empty, omit the ^"""
     length = len(word)
     retSet = set()
 
@@ -139,7 +160,7 @@ def generate_reprs_for_word(word):
         if n == length:
             pass
         else:
-            s += '$' + word[n:]
+            s += '^' + word[n:]
         retSet.add(s)
     return retSet
 
@@ -166,29 +187,47 @@ def test_gaddag(words, initialState):
     print 'Actual set length:', len(actualSet)
     expectedSet = set()
     get_all_paths(initialState, expectedSet, [])
+    print expectedSet
     if expectedSet != actualSet:
         print 'Did not pass'
     else:
         print 'Passed!'
 
 
+def isUsed(arc):
+    for node in nodes:
+        if arc in node.arcs.values():
+            return True
+
+    return False
+
+
 def save_gaddag(filename):
     serialized = []
     idx = 0
+
+    print 'Nodes:'
+    for node in nodes:
+        print node
+
+    for arc in arcs:
+        if not isUsed(arc):
+            print 'unused arc', arc
+
     for node in nodes:
         # represent each node as a bitvector of arcs and a bitvector for
         # letterset
         keys = node.arcs.keys()
         keys.sort()
-        arcs = 0
+        arcsBV = 0
         letterset = 0
         for key in keys:
-            if key != '$':
+            if key != '^':
                 val = ord(key) - ord('A')
             else:
                 val = 26
-            arcs += (1 << val)
-        serialized.append(arcs)
+            arcsBV += (1 << val)
+        serialized.append(arcsBV)
         node.idx = idx
         idx += 1
         for letter in node.letterSet:
@@ -214,6 +253,23 @@ def save_gaddag(filename):
         f.write(struct.pack('<I', towrite))
 
     f.close()
+
+# def load_gaddag(filename):
+#     """ loads a gaddag from file and returns the first node """
+#     global allocArcs, allocStates, nodes, arcs
+#     allocArcs = 0
+#     allocStates = 0
+#     nodes = []
+#     arcs = []
+#     f = open(filename, 'rb')
+#     buf = f.read()
+#     f.close()
+#     # each node is a bitvector of arcs and a bitvector for letterset
+#     # then each arc is just the index of the destination node
+#     serialized = []
+#     for idx in range(0, len(buf), 4):
+#         serialized.append(struct.unpack_from('<I', buf[idx:idx + 4])[0])
+
 
 if __name__ == '__main__':
     if len(sys.argv) != 2:
