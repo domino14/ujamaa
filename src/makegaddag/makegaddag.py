@@ -59,8 +59,11 @@ class Node:
         # add arc from this state to forceState for c
         #logger.debug('Called force_arc for state %s, char %s, endState %s' % (
         #    self, c, forceState))
-        if self._contains_arc(c) and self.arcs[c].destNode is not forceState:
-            assert(False)
+        if self._contains_arc(c):
+            if self.arcs[c].destNode is not forceState:
+                assert(False)
+            else:
+                return      # don't write redundant arc.
         self.arcs[c] = Arc(c, self, forceState)
 
     def __str__(self):
@@ -112,7 +115,6 @@ def get_words(filename):
 def gen_gaddag(filename):
     words = get_words(filename)
     initialState = Node()
-    words = ['CARE', 'CARREL']
     i = 0
     for word in words:
         st = initialState
@@ -187,7 +189,6 @@ def test_gaddag(words, initialState):
     print 'Actual set length:', len(actualSet)
     expectedSet = set()
     get_all_paths(initialState, expectedSet, [])
-    print expectedSet
     if expectedSet != actualSet:
         print 'Did not pass'
     else:
@@ -205,14 +206,6 @@ def isUsed(arc):
 def save_gaddag(filename):
     serialized = []
     idx = 0
-
-    print 'Nodes:'
-    for node in nodes:
-        print node
-
-    for arc in arcs:
-        if not isUsed(arc):
-            print 'unused arc', arc
 
     for node in nodes:
         # represent each node as a bitvector of arcs and a bitvector for

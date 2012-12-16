@@ -18,6 +18,7 @@ struct Node {
     struct Arc **arcs;
     uint8_t numArcs;
     // letterSet is a bit vector where 0 is A and 25 is Z
+    uint32_t arcBitVector;
     uint32_t letterSet;
     uint32_t serializedIndex;
 };
@@ -194,11 +195,16 @@ void ForceArc(NODE *state, char c, NODE *forceState) {
                index1, index2,c);
     }
     arc = containsArc(state, c);
-    if (arc && arc->destination != forceState) {
-        index1 = findNodeInArray(arc->destination);
-        printf("Arc already exists; destination %d %c\n",
-               index1, arc->letter);
-        assert(0);
+    if (arc) {
+        if (arc->destination != forceState) {
+            index1 = findNodeInArray(arc->destination);
+            printf("Arc already exists; destination %d %c\n",
+                   index1, arc->letter);
+            assert(0);
+        } else {
+            assert(arc->destination == forceState);
+            return;  // don't create the arc if it already exists; redundant.
+        }
     }
     assert(createArc(state, c, forceState) == forceState);
 }
@@ -253,27 +259,26 @@ int get_words(char* filename, char words[][16]) {
 // void test_gaddag(char words[][16], int numWords, NODE* root) {
 // }
 
-void serialize_node(uint32_t *bitVector, uint32_t *letterSet, NODE* node) {
-    // for each node, use two 32-bit words; one is a bit vector indicating
-    // a letter for each arc that follows it, the other is the letter
-    // set
+void compute_arc_bitvector(NODE* node) {
+    // for a node, compute a bit vector indicating a letter for each arc
+    // that follows it
     int j;
-    (*bitVector) = 0;
+    node->arcBitVector = 0;
     for (j = 0; j < node->numArcs; j++) {
         char letter = toupper(node->arcs[j]->letter);
         if (letter != SEPARATION_TOKEN) {
-            (*bitVector) += (1 << (letter - 'A'));
+            node->arcBitVector += (1 << (letter - 'A'));
         }
         else {
-            (*bitVector) += (1 << 26);
+            node->arcBitVector += (1 << 26);
         }
     }
-    (*letterSet) = node->letterSet;
+
 }
 
-int compare_arcs (const ARC *a, const ARC *b)
+int compare_arcs (const ARC **a, const ARC **b)
 {
-  int temp = *a->letter - *b->letter;
+  int temp = (*a)->letter - (*b)->letter;
   if (temp > 0)
     return 1;
   else if (temp < 0)
@@ -284,52 +289,39 @@ int compare_arcs (const ARC *a, const ARC *b)
 
 
 void save_gaddag(char* filename) {
-    // i've had enough of trying to serialize this efficiently
-    // this is an ugly way that works. whatever.
-    // would be significantly sped up if "findNodeInArray"
-    // were to use hash tables.
     NODE* node;
-    ARC* arc;
-    void** serialized;
     int num_elements = allocStates * 2 + allocArcs;
     int i, j;
-    serialized = malloc(sizeof(uint32_t*) * num_elements);
-    // note, this assumes a pointer's size is at least as big as a uint32_t
-    // this should be true for pretty much every modern computer out there...
-    int32_t bitVector, letterSet;
+    uint32_t nodeIdx;
     int idx = 0;
+
+    // loop once to compute indices of nodes (node->serializedIndex)
     for (i = 0; i < allocStates; i++) {
         node = nodeArr[i];
-        serialize_node(&bitVector, &letterSet, node);
-        serialized[idx] = bitVector;
+        compute_arc_bitvector(node);
         node->serializedIndex = idx;
-        idx++;
-        serialized[idx] = letterSet;
-        idx++;
+        idx += 2;   // increment by 2 to make room for both bit vectors
         // search for arc in letter order
         // qsort is defined in stdlib.h
-        qsort(node->arcs, node->numArcs, sizeof(ARC*), compare_arcs);
-        // store the negative address of each node's "serializedIndex"
-        // so that we can dereference it later on the second pass-through.
         for (j = 0; j < node->numArcs; j++) {
-            serialized[idx] = -&(node->arcs[j]->destination->serializedIndex);
             idx++;
         }
     }
-
+    assert(idx == num_elements);
+    // loop again to write all indices.
     FILE* fp = fopen(filename, "wb");
-    for (i = 0; i < num_elements; i++) {
-        if (serialized[i] >= 0) {
-            fwrite(&(serialized[i]), sizeof(int32_t), 1, fp);
-        }
-        else {
-            // this is a pointer, dereference the negative and write to file
-            fwrite(&(*(-serialized[i])), sizeof(int32_t), 1, fp);
+    idx = 0;
+    for (i = 0; i < allocStates; i++) {
+        node = nodeArr[i];
+        fwrite(&(node->arcBitVector), sizeof(uint32_t), 1, fp);
+        fwrite(&(node->letterSet), sizeof(uint32_t), 1, fp);
+        qsort(node->arcs, node->numArcs, sizeof(ARC*), compare_arcs);
+        for (j = 0; j < node->numArcs; j++) {
+            nodeIdx = node->arcs[j]->destination->serializedIndex;
+            assert(nodeIdx);
+            fwrite(&(nodeIdx), sizeof(uint32_t), 1, fp);
         }
     }
-
-
-
     fclose(fp);
 }
 
@@ -341,13 +333,6 @@ void gen_gaddag(char* filename) {
     NODE* st;
     NODE* forceSt;
     numWords = get_words(filename, words);
-
-    if (DEBUG) {
-        numWords = 2;
-        strcpy(words[0], "CAREEN");
-        strcpy(words[1], "CARREL");
-    }
-
     initialState = createNode();
     for (i = 0; i < numWords; i++) {
         if (i % 10000 == 0) {
