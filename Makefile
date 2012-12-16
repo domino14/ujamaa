@@ -5,7 +5,7 @@ OBJECTS=$(SOURCES:.c=.o)
 EXECUTABLE=ujamaa
 
 
-all: $(SOURCES) $(EXECUTABLE) makegaddag
+all: $(SOURCES) $(EXECUTABLE)
 
 $(EXECUTABLE): $(OBJECTS)
 	$(CC) $(OBJECTS) -o $@
@@ -14,7 +14,4 @@ $(EXECUTABLE): $(OBJECTS)
 	$(CC) $(CFLAGS) $< -o $@
 
 clean:
-	rm -rf src/*.o src/makegaddag/*.o $(EXECUTABLE) makegaddag
-
-makegaddag: src/makegaddag/gaddag.o
-	$(CC) src/makegaddag/*.o -o $@
+	rm -rf src/*.o $(EXECUTABLE)
