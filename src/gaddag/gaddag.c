@@ -3,34 +3,7 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include <assert.h>
-#include <stdint.h>
-
-#define SEPARATION_TOKEN '^'
-#define TRUE 1
-#define FALSE 0
-#define NUM_LETTERS 26
-#define DEBUG FALSE
-#define MAX_NODES 3000000
-#define MAX_ARCS 4000000
-
-
-struct Node {
-    struct Arc **arcs;
-    uint8_t numArcs;
-    // letterSet is a bit vector where 0 is A and 25 is Z
-    uint32_t arcBitVector;
-    uint32_t letterSet;
-    uint32_t serializedIndex;
-};
-
-struct Arc {
-    char letter;
-    struct Node *destination;
-    struct Node *source;
-};
-
-typedef struct Node NODE;
-typedef struct Arc ARC;
+#include <stdio.h>
 
 NODE* nodeArr[MAX_NODES];
 ARC* arcArr[MAX_ARCS];
@@ -231,34 +204,6 @@ int get_words(char* filename, char words[][16]) {
     return numWords;
 }
 
-// char* append_char(char* word, char c) {
-//     // appends char c to the end of word
-//     int length = strlen(word);
-//     word[length] = c;
-//     word[length + 1] = '\0';
-//     return word;
-// }
-
-// void depth_first_search(NODE* root) {
-//     int i, j;
-//     char letter;
-//     char word[17] = "";  // 15 max length, ^ and \0
-//     char* letterSet;
-//     for (i = 0; i < root->numArcs; i++) {
-//         word = append_char(word, root->arcs[i]->letter);
-//         letterSet = root->arcs[i]->destination->letterSet;
-//         for (j = 0; j < NUM_LETTERS; j++) {
-//             if (letterSet[j]) {
-//                 letter = 'A' + j;
-//                 word = append_char(word, letter);
-//             }
-//         }
-//     }
-// }
-
-// void test_gaddag(char words[][16], int numWords, NODE* root) {
-// }
-
 void compute_arc_bitvector(NODE* node) {
     // for a node, compute a bit vector indicating a letter for each arc
     // that follows it
@@ -377,12 +322,3 @@ void gen_gaddag(char* filename) {
 // some arcs pointing to the same node do not get their letterSets updated.
 // (work out simple CARE example w/algorithm)
 
-int main(int argc, char **argv)
-{
-    if (argc != 2) {
-        printf("usage: %s [argument]\n", argv[0]);
-    } else {
-        gen_gaddag(argv[1]);
-    }
-    return 0;
-}
