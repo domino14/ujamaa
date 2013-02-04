@@ -388,8 +388,7 @@ NODE* load_gaddag(char* filename) {
     }
 
     fclose(fp);
-
-    // TODO don't forget to free serialized
+    free(serialized);
     return initialState;
 }
 
