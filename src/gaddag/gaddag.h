@@ -21,9 +21,18 @@
 
 struct Node {
     struct Arc **arcs;
+    /**
+     * Number of arcs leaving this node.
+     */
     uint8_t numArcs;
-    // letterSet is a bit vector where 0 is A and 25 is Z
+    /*
+     * arcBitVector is a bit vector of letters corresponding to each Arc.
+     */
     uint32_t arcBitVector;
+    /*
+     * letterSet is a bit vector where 0 is A and 25 is Z. It is the set
+     * of letters which if encountered next, make a word.
+     */
     uint32_t letterSet;
     uint32_t serializedIndex;
 };
@@ -39,4 +48,5 @@ typedef struct Arc ARC;
 
 void gen_gaddag(char* filename);
 NODE* load_gaddag(char* filename);
+char containsLetter(NODE*, char);
 #endif
