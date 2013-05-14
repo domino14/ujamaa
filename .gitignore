@@ -6,4 +6,5 @@ ujamaa.sublime-workspace
 words/OWL2.txt
 *.gaddag
 src/gaddag/makegaddag
+src/anagrammer/anagrammer
 *.DS_Store
