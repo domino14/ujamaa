@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 
+//#define DEBUG_
 struct GameState game_state;
 
 void gen_moves(char** position) {
@@ -29,6 +30,29 @@ uint8_t is_letter(char letter) {
     }
     return 0;
 }
+
+void print_rack(uint8_t* rack) {
+    uint8_t i, j;
+    printf(" Rack: ");
+    for (i = 0; i < game_state.num_distinct_letters; i++) {
+        for (j = 0; j < rack[i]; j++) {
+            if (i != game_state.num_distinct_letters - 1) {
+                printf("%c", i + 'A');
+            } else {
+                printf("?");
+            }
+        }
+    }
+    printf("\n");
+}
+
+void print_spaces(uint8_t num_spaces) {
+    uint8_t i;
+    for (i = 0; i < num_spaces; i++) {
+        printf("-");
+    }
+}
+
 /**
  * From Gordon's paper, the gen function.
  * @param pos  The offset from an anchor square.
@@ -36,16 +60,21 @@ uint8_t is_letter(char letter) {
  * @param rack The player's current rack.
  * @param arc  An Arc to the initial state of the GADDAG.
  */
-void gen(int pos, char* word, uint8_t* rack, ARC* arc) {
+void gen(int pos, char* word, uint8_t* rack, ARC* arc, int spaces) {
     // If a letter L is on this square, go_on
     // What square am I on?
+    #ifdef DEBUG_
+    print_spaces(spaces);
+    printf("in gen, %d, Word: %s,", pos, word);
+    print_rack(rack);
+    #endif
     uint8_t blank_position = game_state.num_distinct_letters - 1;
-    uint8_t i, j, k;
+    uint8_t i, k;
     char letter = is_letter(
         game_state.game_board[game_state.current_anchor_row]
         [game_state.current_anchor_col]);
     if (letter) {
-        go_on(pos, letter, word, rack, next_arc(arc, letter), arc);
+        go_on(pos, letter, word, rack, next_arc(arc, letter), arc, spaces);
     } else if (letters_remain(rack)) {
         /*
          * TODO: for each letter ALLOWED ON THIS SQUARE, not just all
@@ -54,30 +83,30 @@ void gen(int pos, char* word, uint8_t* rack, ARC* arc) {
         // For all letters, except the blank.
         for (i = 0; i < game_state.num_distinct_letters - 1; i++) {
             if (rack[i] > 0) {
-                for (j = 0; j < rack[i]; j++) {
-                    // Letter (i + 'A') is on this rack. Temporarily remove it.
-                    rack[i]--;
-                    go_on(pos, i + 'A', word, rack, next_arc(arc, i + 'A'),
-                          arc);
-                    // Re-add letter.
-                    rack[i]++;
-                }
+                #ifdef DEBUG_
+                print_spaces(spaces);
+                printf("%d %cs\n", rack[i], i + 'A');
+                #endif
+                // Letter (i + 'A') is on this rack. Temporarily remove it.
+                rack[i]--;
+                go_on(pos, i + 'A', word, rack, next_arc(arc, i + 'A'),
+                      arc, spaces + 1);
+                // Re-add letter.
+                rack[i]++;
             }
         }
         // Check if there is a blank.
         if (rack[blank_position] > 0) {
             // For each blank
-            for (j = 0; j < rack[blank_position]; j++) {
-                for (k = 0; k < game_state.num_distinct_letters; k++) {
-                    /**
-                     * TODO: For each letter the blank could be ALLOWED
-                     * ON THIS SQUARE.
-                     */
-                    rack[blank_position]--;
-                    go_on(pos, k + 'A', word, rack, next_arc(arc, k + 'A'),
-                          arc);
-                    rack[blank_position]++;
-                }
+            for (k = 0; k < game_state.num_distinct_letters; k++) {
+                /**
+                 * TODO: For each letter the blank could be ALLOWED
+                 * ON THIS SQUARE.
+                 */
+                rack[blank_position]--;
+                go_on(pos, k + 'A', word, rack, next_arc(arc, k + 'A'),
+                      arc, spaces + 1);
+                rack[blank_position]++;
             }
         }
     }
@@ -93,49 +122,83 @@ void gen(int pos, char* word, uint8_t* rack, ARC* arc) {
  * @param OldArc The old arc.
  */
 void go_on(int pos, char L, char* word, uint8_t* rack, ARC* NewArc,
-    ARC* OldArc) {
+    ARC* OldArc, int spaces) {
+    #ifdef DEBUG_
+    print_spaces(spaces);
+    printf("in go_on, %d, Letter: %c, Word: %s,", pos, L, word);
+    print_rack(rack);
+    #endif
     char word_c[16];
+    char word_copy[16];
     word_c[0] = L;
     word_c[1] = '\0';
     if (pos <= 0) {
         // word <- L || word
-
+        #ifdef DEBUG_
+        print_spaces(spaces);
+        printf("pos <= 0, here\n");
+        #endif
         strcat(word_c, word);
         // word_c now prepends word with L. Can I do this faster?
         // IF L on oldArc & no letter directly left then RecordPlay
         if (containsLetter(OldArc->destination, L)) {
             // TODO - check if no letter directly left, this is also a
             // required condition.
+            #ifdef DEBUG_
+            print_spaces(spaces);
+            printf("containsLetter(OldArc->destination, %c)\n", L);
+            #endif
             record_play(word_c);
         }
         if (NewArc) {
+            #ifdef DEBUG_
+            print_spaces(spaces);
+            printf("New arc\n");
+            #endif
             // If there is room to the left, Gen(pos-1, word, rack, NewArc)
             // TODO, check if there is room to the left.
             if (1) {
-                gen(pos - 1, word_c, rack, NewArc);
+                gen(pos - 1, word_c, rack, NewArc, spaces + 1);
             }
             NewArc = next_arc(NewArc, SEPARATION_TOKEN);
             // Now shift direction.
             if (NewArc) {
+                #ifdef DEBUG_
+                print_spaces(spaces);
+                printf("Switched direction\n");
+                #endif
                 // TODO check if there is no letter directly left, AND
                 // there is room to the right.
                 if (1) {
-                    gen(1, word_c, rack, NewArc);
+                    gen(1, word_c, rack, NewArc, spaces + 1);
                 }
             }
         }
     } else if (pos > 0) {
-        strcat(word, word_c);
+        #ifdef DEBUG_
+        print_spaces(spaces);
+        printf("pos > 0\n");
+        #endif
+        strcpy(word_copy, word);
+        strcat(word_copy, word_c);
         if (containsLetter(OldArc->destination, L)) {
+            #ifdef DEBUG_
+            print_spaces(spaces);
+            printf("containsLetter(OldArc->destination, %c)\n", L);
+            #endif
             // TODO check if no letter directly right.
             if (1) {
-                record_play(word);
+                record_play(word_copy);
             }
         }
         if (NewArc) {
+            #ifdef DEBUG_
+            print_spaces(spaces);
+            printf("NewArc\n");
+            #endif
             // TODO check if room to the right.
             if (1) {
-                gen(pos + 1, word, rack, NewArc);
+                gen(pos + 1, word_copy, rack, NewArc, spaces + 1);
             }
         }
     }

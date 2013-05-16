@@ -30,9 +30,9 @@ struct GameState {
 };
 
 void gen_moves(char** position);
-void gen(int pos, char* word, uint8_t* rack, ARC* arc);
+void gen(int pos, char* word, uint8_t* rack, ARC* arc, int);
 void go_on(int pos, char L, char* word, uint8_t* rack, ARC* NewArc,
-    ARC* OldArc);
+    ARC* OldArc, int);
 ARC* next_arc(ARC* arc, char letter);
 uint8_t letters_remain(uint8_t* rack);
 void record_play(char* word);

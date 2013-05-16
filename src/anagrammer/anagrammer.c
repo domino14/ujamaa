@@ -30,7 +30,7 @@ void anagram(NODE* node, char* str) {
             rack[26]++;
         }
     }
-    gen(0, init_word, rack, arc);
+    gen(0, init_word, rack, arc, 0);
 
     free(arc);
 }
