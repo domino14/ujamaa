@@ -129,6 +129,7 @@ void anagram(NODE* node, char* str, char* mode) {
     }
     // Print out hash contents
     g_hash_table_foreach(answers_hash, answer_print_fn, NULL);
+    printf("\n");
     printf("Found %d words\n", g_hash_table_size(answers_hash));
 
     gettimeofday(&end_time, NULL);
@@ -145,5 +146,5 @@ void add_play(char* word) {
 }
 
 void answer_print_fn(char* key, char* value, gpointer userdata) {
-    printf("%s\n", key);
+    printf("%s ", key);
 }
