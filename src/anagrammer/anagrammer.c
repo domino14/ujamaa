@@ -23,10 +23,6 @@ void anagram_gen(int pos, char* word, uint8_t* rack, ARC* arc, uint8_t mode) {
     uint8_t blank_position = game_state.num_distinct_letters - 1;
     uint8_t i, k;
     if (letters_remain(rack)) {
-        /*
-         * TODO: for each letter ALLOWED ON THIS SQUARE, not just all
-         * letters.
-         */
         // For all letters, except the blank.
         for (i = 0; i < game_state.num_distinct_letters - 1; i++) {
             if (rack[i] > 0) {
@@ -42,10 +38,6 @@ void anagram_gen(int pos, char* word, uint8_t* rack, ARC* arc, uint8_t mode) {
         if (rack[blank_position] > 0) {
             // For each blank
             for (k = 0; k < game_state.num_distinct_letters; k++) {
-                /**
-                 * TODO: For each letter the blank could be ALLOWED
-                 * ON THIS SQUARE.
-                 */
                 rack[blank_position]--;
                 anagram_go_on(pos, k + 'A', word, rack, next_arc(arc, k + 'A'),
                       arc, mode);
@@ -90,24 +82,19 @@ void anagram_go_on(int pos, char L, char* word, uint8_t* rack, ARC* NewArc,
             }
         }
         if (NewArc) {
-            // TODO check if room to the right.
             anagram_gen(pos + 1, word_copy, rack, NewArc, mode);
         }
     }
 }
 
-void anagram(NODE* node, char* str, char* mode) {
-    struct timeval start_time, end_time;
-    int total_usecs;
-    gettimeofday(&start_time, NULL);
-    ARC* arc = malloc(sizeof(ARC));
-    game_state.num_distinct_letters = 27;
-    char init_word[16];
-    uint8_t rack[27];
+/**
+ * Turns the passed in string into a rack.
+ * @param str  A string with letters.
+ * @param rack A vector of 27 integers, one for each letter of the alphabet
+ *             (blank is the 27th).
+ */
+void turn_string_into_rack(char* str, uint8_t* rack) {
     uint8_t i;
-    strcpy(init_word, "");
-    // Set the arc to point to the initial node.
-    arc->destination = node;
     for (i = 0; i < 27; i++) {
         rack[i] = 0;
     }
@@ -119,6 +106,23 @@ void anagram(NODE* node, char* str, char* mode) {
             rack[26]++;
         }
     }
+}
+
+void anagram(NODE* node, char* str, char* mode, struct Answers *answers,
+             int timeit) {
+    struct timeval start_time, end_time;
+    int total_usecs, num_answers;
+    if (timeit) {
+        gettimeofday(&start_time, NULL);
+    }
+    ARC* arc = malloc(sizeof(ARC));
+    game_state.num_distinct_letters = 27;
+    char init_word[16];
+    uint8_t rack[27];
+    strcpy(init_word, "");
+    // Set the arc to point to the initial node.
+    arc->destination = node;
+    turn_string_into_rack(str, rack);
     answers_hash = g_hash_table_new_full(g_str_hash, g_str_equal, g_free,
                                          NULL);
 
@@ -128,15 +132,21 @@ void anagram(NODE* node, char* str, char* mode) {
         anagram_gen(0, init_word, rack, arc, 1);
     }
     // Print out hash contents
-    g_hash_table_foreach(answers_hash, answer_print_fn, NULL);
-    printf("\n");
-    printf("Found %d words\n", g_hash_table_size(answers_hash));
+    num_answers = g_hash_table_size(answers_hash);
+    answers->num_answers = num_answers;
+    answers->cur_answer = 0;
+    answers->answers = malloc(num_answers * sizeof(char*));
+    g_hash_table_foreach(answers_hash, answer_add, answers);
 
-    gettimeofday(&end_time, NULL);
-    total_usecs = (end_time.tv_sec-start_time.tv_sec) * 1000000 +
-        (end_time.tv_usec-start_time.tv_usec);
-    printf("Took %d usecs\n", total_usecs);
+    if (timeit) {
+        printf("Found %d words\n", g_hash_table_size(answers_hash));
+        gettimeofday(&end_time, NULL);
+        total_usecs = (end_time.tv_sec-start_time.tv_sec) * 1000000 +
+            (end_time.tv_usec-start_time.tv_usec);
+        printf("Took %d usecs\n", total_usecs);
+    }
     free(arc);
+    g_hash_table_destroy(answers_hash);
 }
 
 void add_play(char* word) {
@@ -145,6 +155,17 @@ void add_play(char* word) {
     g_hash_table_add(answers_hash, word_p);
 }
 
-void answer_print_fn(char* key, char* value, gpointer userdata) {
-    printf("%s ", key);
+void answer_add(char* key, char* value, gpointer userdata) {
+    struct Answers *as = (struct Answers*) userdata;
+    as->answers[as->cur_answer] = malloc(strlen(key));
+    strcpy(as->answers[as->cur_answer], key);
+    as->cur_answer++;
+}
+
+void cleanup_answers(struct Answers *answers) {
+    uint8_t i;
+    for (i = 0; i < answers->num_answers; i++) {
+        free(answers->answers[i]);
+    }
+    free(answers->answers);
 }
