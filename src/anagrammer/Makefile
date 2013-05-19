@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-c -Wall $(shell pkg-config --cflags glib-2.0)
+CFLAGS=-c -Wall $(shell pkg-config --cflags glib-2.0) -O3
 SOURCES=../gaddag/gaddag.c main.c anagrammer.c ../movegen.c
 OBJECTS=$(SOURCES:.c=.o)
 EXECUTABLE=anagrammer
@@ -23,6 +23,6 @@ $(EXECUTABLE_CHALLENGES): $(OBJECTS_CHALLENGES)
 	$(CC) $(OBJECTS_CHALLENGES) -o $@ $(LIBS)
 
 clean:
-	rm -rf *.o $(EXECUTABLE) $(EXECUTABLE_CHALLENGES)
+	rm -rf *.o $(EXECUTABLE) $(EXECUTABLE_CHALLENGES) ../gaddag/*.o ../*.o
 
 $(EXECUTABLE_CHALLENGES): $(OBJECTS_CHALLENGES)
