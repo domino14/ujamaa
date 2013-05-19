@@ -10,14 +10,10 @@ int main(int argc, char **argv) {
         printf("Modes: anagram build\n");
         return 1;
     }
-    uint8_t i;
     printf("Loading gaddag...\n");
     NODE* node = load_gaddag(argv[1]);
-    anagram(node, argv[2], argv[3], &answers, 1);
-    for (i = 0; i < answers.num_answers; i++) {
-        printf("%s ", answers.answers[i]);
-    }
-    printf("\n");
+    anagram(node, argv[2], argv[3], &answers, 1, 0);
+    print_answers(&answers);
     // Clean up
     cleanup_answers(&answers);
 

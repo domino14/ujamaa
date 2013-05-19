@@ -108,8 +108,21 @@ void turn_string_into_rack(char* str, uint8_t* rack) {
     }
 }
 
-void anagram(NODE* node, char* str, char* mode, struct Answers *answers,
-             int timeit) {
+/**
+ * Anagrams or builds a letter string.
+ * @param node                The beginning node of the GADDAG.
+ * @param str                 The string to anagram/build.
+ * @param mode                "anagram" or "build"
+ * @param answers             An Answers struct.
+ * @param timeit              Print timing information.
+ * @param max_limit           If generates more than this number of answers,
+ *                            clean up without storing answers in struct.
+ *                            Also, if we generate 0, follow the same path.
+ *                            Use -1 to ignore.
+ * @return 1 if success, 0 if failure.
+ */
+int anagram(NODE* node, char* str, char* mode, struct Answers *answers,
+             int timeit, int max_limit) {
     struct timeval start_time, end_time;
     int total_usecs, num_answers;
     if (timeit) {
@@ -134,6 +147,11 @@ void anagram(NODE* node, char* str, char* mode, struct Answers *answers,
     // Print out hash contents
     num_answers = g_hash_table_size(answers_hash);
     answers->num_answers = num_answers;
+    if (max_limit > 0 && (
+            num_answers > max_limit || num_answers == 0)) {
+        cleanup_after_anagram(arc);
+        return 0;
+    }
     answers->cur_answer = 0;
     answers->answers = malloc(num_answers * sizeof(char*));
     g_hash_table_foreach(answers_hash, answer_add, answers);
@@ -145,6 +163,11 @@ void anagram(NODE* node, char* str, char* mode, struct Answers *answers,
             (end_time.tv_usec-start_time.tv_usec);
         printf("Took %d usecs\n", total_usecs);
     }
+    cleanup_after_anagram(arc);
+    return 1;
+}
+
+void cleanup_after_anagram(ARC* arc) {
     free(arc);
     g_hash_table_destroy(answers_hash);
 }
@@ -162,8 +185,16 @@ void answer_add(char* key, char* value, gpointer userdata) {
     as->cur_answer++;
 }
 
+void print_answers(struct Answers *answers) {
+    int i;
+    for (i = 0; i < answers->num_answers; i++) {
+        printf("%s ", answers->answers[i]);
+    }
+    printf("\n");
+}
+
 void cleanup_answers(struct Answers *answers) {
-    uint8_t i;
+    int i;
     for (i = 0; i < answers->num_answers; i++) {
         free(answers->answers[i]);
     }

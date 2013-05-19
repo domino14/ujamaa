@@ -5,7 +5,7 @@ OBJECTS=$(SOURCES:.c=.o)
 EXECUTABLE=anagrammer
 
 # Blank challenges
-SOURCES_CHALLENGES=gen_blank_challenges.c ../movegen.c ../gaddag/gaddag.c
+SOURCES_CHALLENGES=gen_blank_challenges.c ../movegen.c ../gaddag/gaddag.c anagrammer.c
 OBJECTS_CHALLENGES=$(SOURCES_CHALLENGES:.c=.o)
 EXECUTABLE_CHALLENGES=blank_challenges
 
@@ -23,6 +23,6 @@ $(EXECUTABLE_CHALLENGES): $(OBJECTS_CHALLENGES)
 	$(CC) $(OBJECTS_CHALLENGES) -o $@ $(LIBS)
 
 clean:
-	rm -rf src/*.o $(EXECUTABLE) $(EXECUTABLE_CHALLENGES)
+	rm -rf *.o $(EXECUTABLE) $(EXECUTABLE_CHALLENGES)
 
 $(EXECUTABLE_CHALLENGES): $(OBJECTS_CHALLENGES)
