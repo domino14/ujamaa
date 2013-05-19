@@ -63,6 +63,7 @@ ARC* containsArc(NODE* node, char c) {
 NODE* createNode() {
     // creates and initializes a node
     NODE* newNode = malloc(sizeof(NODE));
+    assert(newNode);
     newNode->letterSet = 0;
     newNode->arcs = NULL;
     newNode->numArcs = 0;
@@ -86,11 +87,13 @@ NODE* createArc(NODE* from, char c, NODE* to) {
         newNode = to;
     }
     newArc = malloc(sizeof(ARC));
+    assert(newArc);
     allocArcs++;
 
     if (!(from->arcs)) {
         // this node's array of arcs is NULL. create that first
         from->arcs = malloc(sizeof(ARC*));
+        assert(from->arcs);
         index = 0;
     } else {
         // reallocate node's array of arcs
@@ -99,6 +102,7 @@ NODE* createArc(NODE* from, char c, NODE* to) {
             printf("Reallocating %d number of arcs\n", from->numArcs + 1);
         }
         from->arcs = realloc(from->arcs, (from->numArcs + 1) * sizeof(ARC*));
+	assert(from->arcs);
     }
     from->arcs[index] = newArc;
     from->numArcs++;
@@ -347,6 +351,7 @@ NODE* load_gaddag(char* filename) {
     printf("Read %d elements, %d nodes\n", num_elements, num_nodes);
 
     serialized = malloc(sizeof(uint32_t) * num_elements);
+    assert(serialized);
     fread(serialized, sizeof(uint32_t), num_elements, fp);
     fclose(fp);
     printf("Read entire array\n");
@@ -387,7 +392,6 @@ NODE* load_gaddag(char* filename) {
 
     }
 
-    fclose(fp);
     free(serialized);
     return initialState;
 }
