@@ -8,4 +8,5 @@ words/OWL2.txt
 src/gaddag/makegaddag
 src/anagrammer/anagrammer
 src/anagrammer/blank_challenges
+src/anagrammer/judge
 *.DS_Store

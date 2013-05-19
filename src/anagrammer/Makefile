@@ -9,9 +9,15 @@ SOURCES_CHALLENGES=gen_blank_challenges.c ../movegen.c ../gaddag/gaddag.c anagra
 OBJECTS_CHALLENGES=$(SOURCES_CHALLENGES:.c=.o)
 EXECUTABLE_CHALLENGES=blank_challenges
 
+# Judge
+SOURCES_JUDGE=../gaddag/gaddag.c judge.c
+OBJECTS_JUDGE=$(SOURCES_JUDGE:.c=.o)
+EXECUTABLE_JUDGE=judge
+
 LIBS=$(shell pkg-config --libs glib-2.0)
 
-all: $(SOURCES) $(EXECUTABLE)
+all: $(SOURCES) $(EXECUTABLE) $(SOURCES_CHALLENGES) $(EXECUTABLE_CHALLENGES) \
+     $(SOURCES_JUDGE) $(EXECUTABLE_JUDGE)
 
 $(EXECUTABLE): $(OBJECTS)
 	$(CC) $(OBJECTS) -o $@ $(LIBS)
@@ -22,7 +28,9 @@ $(EXECUTABLE): $(OBJECTS)
 $(EXECUTABLE_CHALLENGES): $(OBJECTS_CHALLENGES)
 	$(CC) $(OBJECTS_CHALLENGES) -o $@ $(LIBS)
 
-clean:
-	rm -rf *.o $(EXECUTABLE) $(EXECUTABLE_CHALLENGES) ../gaddag/*.o ../*.o
+$(EXECUTABLE_JUDGE): $(OBJECTS_JUDGE)
+	$(CC) $(OBJECTS_JUDGE) -o $@
 
-$(EXECUTABLE_CHALLENGES): $(OBJECTS_CHALLENGES)
+clean:
+	rm -rf *.o $(EXECUTABLE) $(EXECUTABLE_CHALLENGES) ../gaddag/*.o ../*.o \
+    $(EXECUTABLE_JUDGE)
