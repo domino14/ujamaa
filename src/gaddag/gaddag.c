@@ -102,7 +102,7 @@ NODE* createArc(NODE* from, char c, NODE* to) {
             printf("Reallocating %d number of arcs\n", from->numArcs + 1);
         }
         from->arcs = realloc(from->arcs, (from->numArcs + 1) * sizeof(ARC*));
-	assert(from->arcs);
+        assert(from->arcs);
     }
     from->arcs[index] = newArc;
     from->numArcs++;
@@ -197,19 +197,27 @@ void ForceArc(NODE *state, char c, NODE *forceState) {
 
 int get_words(char* filename, char words[][16]) {
     FILE *fp;
-    char buffer[500];
+    char buffer[4096];
     int numWords = 0;
-    int pos = 0;
+    int pos = 0, pos2 = 0;
+    int i;
     fp = fopen(filename, "rb");
     if (fp == 0) {
         printf("Could not load file.\n");
         return 0;
     }
-    while (fgets(buffer, 250, fp)) {
-        // find first occurrence of space
+    while (fgets(buffer, 4095, fp)) {
+        // Find first occurrence of space or \n
         pos = strcspn(buffer, " ");
-        // only copy words until the space
+        pos2 = strcspn(buffer, "\n");
+        if (pos2 < pos) {
+            pos = pos2;
+        }
+        // Only copy words until the space or \n
         strncpy(words[numWords], buffer, pos);
+        for (i = 0; i < strlen(words[numWords]); i++) {
+            assert(words[numWords][i] >='A' && words[numWords][i] <= 'Z');
+        }
         numWords++;
     }
     fclose(fp);
@@ -224,14 +232,15 @@ void compute_arc_bitvector(NODE* node) {
     node->arcBitVector = 0;
     for (j = 0; j < node->numArcs; j++) {
         char letter = toupper(node->arcs[j]->letter);
+        int toAdd;
         if (letter != SEPARATION_TOKEN) {
-            node->arcBitVector += (1 << (letter - 'A'));
+            toAdd = 1 << (letter - 'A');
         }
         else {
-            node->arcBitVector += (1 << 26);
+            toAdd = 1 << 26;
         }
+        node->arcBitVector += toAdd;
     }
-
 }
 
 int compare_arcs (const ARC **a, const ARC **b)
