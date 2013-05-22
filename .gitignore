@@ -4,6 +4,7 @@ ujamaa.sublime-workspace
 *.o
 *.out
 words/OWL2.txt
+words/CSW12.txt
 *.gaddag
 src/gaddag/makegaddag
 src/anagrammer/anagrammer
