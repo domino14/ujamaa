@@ -12,6 +12,7 @@ void gen_blank_challenges(NODE* node, int word_length, int num, int max_sol,
 GRand* g_rand;
 char letter_distribution[101] =
     "AAAAAAAAABBCCDDDDEEEEEEEEEEEEFFGGGHHIIIIIIIIIJKLLLLMMNNNNNNOOOOOOOOPPQRRRRRRSSSSTTTTTTUUUUVVWWXYYZ??\0";
+GHashTable *all_answers_hash;
 
 int main(int argc, char **argv) {
     if (argc != 6) {
@@ -23,10 +24,13 @@ int main(int argc, char **argv) {
     printf("Loading gaddag...");
     NODE* node = load_gaddag(argv[1]);
     FILE* fp = fopen(argv[5], "w");
+    all_answers_hash = g_hash_table_new_full(g_str_hash, g_str_equal, g_free,
+                                             NULL);
     gen_blank_challenges(node, atoi(argv[4]), atoi(argv[2]), atoi(argv[3]),
                          fp);
     g_rand_free(g_rand);
     fclose(fp);
+    g_hash_table_destroy(all_answers_hash);
     return 0;
 }
 
@@ -39,6 +43,18 @@ void gen_random_rack(char* str, int num_letters, int num_blanks) {
         str[j] = '?';
     }
     str[num_blanks + num_letters] = '\0';
+}
+
+
+/**
+ * Adds the word to the all_answers_hash, by duplicating it in memory first.
+ * Note that the g_hash_table_destroy function above will free this pointer.
+ * @param word The word pointer.
+ */
+void add_to_hash(char* word) {
+    char* word_p = malloc(strlen(word));
+    strcpy(word_p, word);
+    g_hash_table_add(all_answers_hash, word_p);
 }
 
 /**
@@ -55,8 +71,19 @@ int try_generate_blank_challenge(int word_length, int max_sol, int num_blanks,
     gen_random_rack(str, word_length - num_blanks, num_blanks);
     success = anagram(node, str, "anagram", &answers, 0, max_sol);
     if (success) {
+        for (i = 0; i < answers.num_answers; i++) {
+            if (g_hash_table_contains(all_answers_hash, answers.answers[i])) {
+                // This answer is already in the all_answers_hash; don't
+                // allow.
+                printf("Generated duplicate, ignoring, %s, %s\n",
+                       str, answers.answers[i]);
+                cleanup_answers(&answers);
+                return 0;
+            }
+        }
         fprintf(fp, "%s ", str);
         for (i = 0; i < answers.num_answers; i++) {
+            add_to_hash(answers.answers[i]);
             fprintf(fp, "%s ", answers.answers[i]);
         }
         fprintf(fp, "\n");
@@ -64,6 +91,8 @@ int try_generate_blank_challenge(int word_length, int max_sol, int num_blanks,
     }
     return success;
 }
+
+
 
 void gen_blank_challenges(NODE* node, int word_length, int num, int max_sol,
                           FILE* fp) {
