@@ -6,19 +6,20 @@
 int find_word(NODE* node, char* word);
 
 int main(int argc, char **argv) {
-    int found;
-    if (argc != 3) {
-        printf("Arguments: gaddag_path word\n");
+    int i;
+    if (argc < 3) {
+        printf("Arguments: gaddag_path word [word2 ... wordn]\n");
         return 1;
     }
     printf("Loading gaddag...\n");
     NODE* node = load_gaddag(argv[1]);
-    found = find_word(node, argv[2]);
-    if (found) {
-        printf("Yep\n");
-    } else {
-        printf("Nope\n");
+    for (i = 2; i < argc; i++) {
+        if (!find_word(node, argv[i])) {
+            printf("Nope\n");
+	    return 0;
+	}
     }
+    printf("Yep\n");
     return 0;
 }
 
