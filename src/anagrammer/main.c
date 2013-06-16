@@ -1,26 +1,22 @@
 #include "../gaddag/gaddag.h"
 #include "anagrammer.h"
 #include "../server.h"
-
+#include <string.h>
 struct Answers answers;
+NODE* node;
 
-/*int main(int argc, char **argv) {
-    if (argc != 4) {
-        printf("Arguments: gaddag_path anagram_str mode\n");
-        printf("Modes: anagram build\n");
-        return 1;
+/**
+ * Writes a message to socket.
+ * @param ostream The output stream for the socket.
+ * @param message The message.
+ */
+void writeToSocket(GOutputStream* ostream, char* message) {
+    GError* error = NULL;
+    g_output_stream_write(ostream, message, strlen(message), NULL, &error);
+    if (error != NULL) {
+        g_error("Error writing: %s\n", error->message);
     }
-    printf("Loading gaddag...\n");
-    NODE* node = load_gaddag(argv[1]);
-    anagram(node, argv[2], argv[3], &answers, 1, 0);
-    print_answers(&answers);
-    // Clean up
-    cleanup_answers(&answers);
-
-    return 0;
-} */
-
-
+}
 
 /**
  * Processes an incoming socket message.
@@ -28,16 +24,31 @@ struct Answers answers;
  * @param ostream The output stream for the socket.
  */
 void processMessage(gchar* message, GOutputStream* ostream) {
-    GError* error = NULL;
+    int i;
+    char param_error[] = "Wrong format; use <anagram|build> <string>\n";
     g_print("Got: %s\n", message);
-    g_output_stream_write(ostream,
-                      "Hello client!", /* your message goes here */
-                      13, /* length of your message */
-                      NULL,
-                      &error);
-    if (error != NULL) {
-        g_error("Error writing: %s\n", error->message);
+
+    gchar** command = g_strsplit(message, " ", 2);
+    // Figure out how many tokens it actually generated.
+    // g_strsplit returns a null-terminated list.
+    for (i = 0; command[i] != NULL; i++) {
     }
+    if (i != 2 || strlen(command[0]) > 7 || strlen(command[1]) > 15 ||
+        !(g_strcmp0(command[0], "anagram") == 0 ||
+            g_strcmp0(command[0], "build") == 0)) {
+        writeToSocket(ostream, param_error);
+    } else {
+        GString* str = g_string_new("");
+        anagram(node, command[1], command[0], &answers, 1, 0);
+        for (i = 0; i < answers.num_answers; i++) {
+            g_string_append(str, answers.answers[i]);
+            g_string_append(str, "\n");
+        }
+        cleanup_answers(&answers);
+        writeToSocket(ostream, str->str);
+        g_string_free(str, TRUE);
+    }
+    g_strfreev(command);
 }
 
 int main(int argc, char **argv) {
@@ -64,7 +75,7 @@ int main(int argc, char **argv) {
     GMainLoop *loop = g_main_loop_new(NULL, FALSE);
 
     g_print("Loading gaddag...");
-    NODE* node = load_gaddag(argv[1]);
+    node = load_gaddag(argv[1]);
 
     g_main_loop_run(loop);
     return 1;
