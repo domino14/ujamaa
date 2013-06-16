@@ -56,6 +56,7 @@ int main(int argc, char **argv) {
         g_print("Arguments: gaddag_path\n");
         return 1;
     }
+    g_type_init();
     GSocketService *service = g_socket_service_new();
     GInetAddress *address = g_inet_address_new_from_string("127.0.0.1");
     GSocketAddress *socket_address = g_inet_socket_address_new(address, 4000);
