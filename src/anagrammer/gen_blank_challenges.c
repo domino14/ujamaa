@@ -14,25 +14,25 @@ char letter_distribution[101] =
     "AAAAAAAAABBCCDDDDEEEEEEEEEEEEFFGGGHHIIIIIIIIIJKLLLLMMNNNNNNOOOOOOOOPPQRRRRRRSSSSTTTTTTUUUUVVWWXYYZ??\0";
 GHashTable *all_answers_hash;
 
-// int main(int argc, char **argv) {
-//     if (argc != 6) {
-//         printf("Arguments: gaddag_path num_questions max_ans_per_q length");
-//         printf(" filename\n");
-//         return 1;
-//     }
-//     g_rand = g_rand_new();
-//     printf("Loading gaddag...");
-//     NODE* node = load_gaddag(argv[1]);
-//     FILE* fp = fopen(argv[5], "w");
-//     all_answers_hash = g_hash_table_new_full(g_str_hash, g_str_equal, g_free,
-//                                              NULL);
-//     gen_blank_challenges(node, atoi(argv[4]), atoi(argv[2]), atoi(argv[3]),
-//                          fp);
-//     g_rand_free(g_rand);
-//     fclose(fp);
-//     g_hash_table_destroy(all_answers_hash);
-//     return 0;
-// }
+int main(int argc, char **argv) {
+    if (argc != 6) {
+        printf("Arguments: gaddag_path num_questions max_ans_per_q length");
+        printf(" filename\n");
+        return 1;
+    }
+    g_rand = g_rand_new();
+    printf("Loading gaddag...");
+    NODE* node = load_gaddag(argv[1]);
+    FILE* fp = fopen(argv[5], "w");
+    all_answers_hash = g_hash_table_new_full(g_str_hash, g_str_equal, g_free,
+                                             NULL);
+    gen_blank_challenges(node, atoi(argv[4]), atoi(argv[2]), atoi(argv[3]),
+                         fp);
+    g_rand_free(g_rand);
+    fclose(fp);
+    g_hash_table_destroy(all_answers_hash);
+    return 0;
+}
 
 void gen_random_rack(char* str, int num_letters, int num_blanks) {
     uint8_t i, j;

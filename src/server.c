@@ -1,8 +1,8 @@
-#include <glib.h>
-#include <gio/gio.h>
+#include "server.h"
 
 /**
- * [network_read description]
+ * Reads from the socket and processes message with passed in external function
+ * in 'data' pointer. 'data' is a ConnectionData instance.
  * @param  source The source channel.
  * @param  cond   A condition.
  * @param  data   The connection.
@@ -12,25 +12,17 @@ gboolean network_read(GIOChannel *source, GIOCondition cond, gpointer data) {
     GString *s = g_string_new(NULL);
     GError *error = NULL;
     GIOStatus ret = g_io_channel_read_line_string(source, s, NULL, &error);
+    struct ConnectionData *cdata = data;
     GOutputStream *ostream = g_io_stream_get_output_stream (
-        G_IO_STREAM (data));
-
+        G_IO_STREAM (cdata->connection));
     if (ret == G_IO_STATUS_ERROR) {
         g_warning ("Error reading: %s\n", error->message);
         // Drop last reference on connection
-        g_object_unref (data);
+        g_object_unref (cdata->connection);
         // Remove the event source
         return FALSE;
     } else {
-        g_print("Got: %s\n", s->str);
-        g_output_stream_write(ostream,
-                          "Hello client!", /* your message goes here */
-                          13, /* length of your message */
-                          NULL,
-                          &error);
-        if (error != NULL) {
-            g_error("Error writing: %s\n", error->message);
-        }
+        cdata->processMessage(s->str, ostream);
     }
     if (ret == G_IO_STATUS_EOF) {
         return FALSE;
@@ -55,24 +47,8 @@ gboolean new_connection(GSocketService *service, GSocketConnection *connection,
 
     gint fd = g_socket_get_fd(socket);
     GIOChannel *channel = g_io_channel_unix_new(fd);
-    g_io_add_watch(channel, G_IO_IN, (GIOFunc) network_read, connection);
+    struct ConnectionData *cdata = user_data;
+    cdata->connection = connection;
+    g_io_add_watch(channel, G_IO_IN, (GIOFunc) network_read, cdata);
     return TRUE;
-}
-
-int main(int argc, char **argv) {
-    GSocketService *service = g_socket_service_new();
-    GInetAddress *address = g_inet_address_new_from_string("127.0.0.1");
-    GSocketAddress *socket_address = g_inet_socket_address_new(address, 4000);
-    g_socket_listener_add_address(
-        G_SOCKET_LISTENER(service), socket_address, G_SOCKET_TYPE_STREAM,
-        G_SOCKET_PROTOCOL_TCP, NULL, NULL, NULL);
-
-    g_object_unref(socket_address);
-    g_object_unref(address);
-    g_socket_service_start(service);
-
-    g_signal_connect(service, "incoming", G_CALLBACK(new_connection), NULL);
-
-    GMainLoop *loop = g_main_loop_new(NULL, FALSE);
-    g_main_loop_run(loop);
 }
