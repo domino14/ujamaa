@@ -1,9 +1,8 @@
-#include "../gaddag/gaddag.h"
+#include "../gaddag/loadgaddag.h"
 #include "anagrammer.h"
 #include "../server.h"
 #include <string.h>
 struct Answers answers;
-NODE* node;
 
 /**
  * Writes a message to socket.
@@ -39,7 +38,7 @@ void processMessage(gchar* message, GOutputStream* ostream) {
         writeToSocket(ostream, param_error);
     } else {
         GString* str = g_string_new("");
-        anagram(node, command[1], command[0], &answers, 1, 0);
+        anagram(command[1], command[0], &answers, 1, 0);
         for (i = 0; i < answers.num_answers; i++) {
             g_string_append(str, answers.answers[i]);
             g_string_append(str, "\n");
@@ -76,7 +75,7 @@ int main(int argc, char **argv) {
     GMainLoop *loop = g_main_loop_new(NULL, FALSE);
 
     g_print("Loading gaddag...");
-    node = load_gaddag(argv[1]);
+    load_gaddag(argv[1]);
 
     g_main_loop_run(loop);
     return 1;

@@ -7,6 +7,7 @@
 #include "anagrammer.h"
 
 extern struct GameState game_state;
+extern uint32_t* gaddag;
 GHashTable *answers_hash;
 
 #define ANAGRAM_MODE 0
@@ -121,20 +122,17 @@ void turn_string_into_rack(char* str, uint8_t* rack) {
  *                            Use -1 to ignore.
  * @return 1 if success, 0 if failure.
  */
-int anagram(NODE* node, char* str, char* mode, struct Answers *answers,
+int anagram(char* str, char* mode, struct Answers *answers,
              int timeit, int max_limit) {
     struct timeval start_time, end_time;
     int total_usecs, num_answers;
     if (timeit) {
         gettimeofday(&start_time, NULL);
     }
-    ARC* arc = malloc(sizeof(ARC));
     game_state.num_distinct_letters = 27;
     char init_word[16];
     uint8_t rack[27];
     strcpy(init_word, "");
-    // Set the arc to point to the initial node.
-    arc->destination = node;
     turn_string_into_rack(str, rack);
     answers_hash = g_hash_table_new_full(g_str_hash, g_str_equal, g_free,
                                          NULL);
@@ -149,7 +147,7 @@ int anagram(NODE* node, char* str, char* mode, struct Answers *answers,
     answers->num_answers = num_answers;
     if (max_limit > 0 && (
             num_answers > max_limit || num_answers == 0)) {
-        cleanup_after_anagram(arc);
+        cleanup_after_anagram();
         return 0;
     }
     answers->cur_answer = 0;
@@ -163,12 +161,11 @@ int anagram(NODE* node, char* str, char* mode, struct Answers *answers,
             (end_time.tv_usec-start_time.tv_usec);
         printf("Took %d usecs\n", total_usecs);
     }
-    cleanup_after_anagram(arc);
+    cleanup_after_anagram();
     return 1;
 }
 
-void cleanup_after_anagram(ARC* arc) {
-    free(arc);
+void cleanup_after_anagram() {
     g_hash_table_destroy(answers_hash);
 }
 
