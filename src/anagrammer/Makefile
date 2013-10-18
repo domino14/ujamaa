@@ -1,7 +1,6 @@
 CC=gcc
-CFLAGS=-c -Wall $(shell pkg-config --cflags glib-2.0) -O3 \
-	$(shell pkg-config --cflags gio-2.0)
-SOURCES=../gaddag/gaddag.c main.c anagrammer.c ../movegen.c ../server.c
+CFLAGS=-c -Wall $(shell pkg-config --cflags glib-2.0) -O3
+SOURCES=../gaddag/gaddag.c main.c anagrammer.c ../movegen.c
 OBJECTS=$(SOURCES:.c=.o)
 EXECUTABLE=anagrammer
 
@@ -17,13 +16,14 @@ OBJECTS_JUDGE=$(SOURCES_JUDGE:.c=.o)
 EXECUTABLE_JUDGE=judge
 
 LIBS=$(shell pkg-config --libs glib-2.0)
-SOCKET_LIBS=$(shell pkg-config --libs gio-2.0)
+# XXX: Need to genericize - how to make platform independent? :
+ZMQ_LIBS=-L/usr/local/lib -lzmq
 
 all: $(SOURCES) $(EXECUTABLE) $(SOURCES_CHALLENGES) $(EXECUTABLE_CHALLENGES) \
      $(SOURCES_JUDGE) $(EXECUTABLE_JUDGE)
 
 $(EXECUTABLE): $(OBJECTS)
-	$(CC) $(OBJECTS) -o $@ $(LIBS) $(SOCKET_LIBS)
+	$(CC) $(OBJECTS) -o $@ $(LIBS) $(ZMQ_LIBS)
 
 %.o : %.c
 	$(CC) $(CFLAGS) $< -o $@
