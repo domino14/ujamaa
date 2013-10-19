@@ -37,6 +37,20 @@ void processMessage(gchar* message, GString* output) {
     g_strfreev(command);
 }
 
+// Receive 0MQ string from socket and convert into Cstring
+// Chops string at 255 chars, if it's longer
+static char * s_recv (void *socket) {
+    char buffer [256];
+    int size = zmq_recv (socket, buffer, 255, 0);
+    if (size == -1)
+        return NULL;
+    if (size > 255)
+        size = 255;
+    buffer [size] = 0;
+    return strdup (buffer);
+}
+
+
 int main(int argc, char **argv) {
     if (argc != 2) {
         g_print("Arguments: gaddag_path\n");
@@ -51,14 +65,13 @@ int main(int argc, char **argv) {
     node = load_gaddag(argv[1]);
 
     while (1) {
-        char buffer[255];
         GString* str = g_string_new("");
-
-        zmq_recv(responder, buffer, 255, 0);
-        g_print("Received message: %s", buffer);
+        char* buffer = s_recv(responder);
+        g_print("Length of buffer: %d, '%s'\n", strlen(buffer), buffer);
         processMessage(buffer, str);
         zmq_send(responder, str->str, strlen(str->str), 0);
         g_string_free(str, TRUE);
+        free(buffer);
 
     }
     return 1;
