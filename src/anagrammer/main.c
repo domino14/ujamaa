@@ -70,6 +70,7 @@ int main(int argc, char **argv) {
         g_print("Length of buffer: %d, '%s'\n", strlen(buffer), buffer);
         processMessage(buffer, str);
         zmq_send(responder, str->str, strlen(str->str), 0);
+        g_print("Sent str, length:%d\n", strlen(str->str));
         g_string_free(str, TRUE);
         free(buffer);
 
