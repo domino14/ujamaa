@@ -1,5 +1,6 @@
 CC=gcc
-CFLAGS=-c -Wall $(shell pkg-config --cflags glib-2.0) -O3
+INCLUDES=-I /usr/local/include
+CFLAGS=-c -Wall $(shell pkg-config --cflags glib-2.0) -O3 ${INCLUDES}
 SOURCES=../gaddag/gaddag.c main.c anagrammer.c ../movegen.c
 OBJECTS=$(SOURCES:.c=.o)
 EXECUTABLE=anagrammer
@@ -15,7 +16,7 @@ SOURCES_JUDGE=../gaddag/gaddag.c judge.c
 OBJECTS_JUDGE=$(SOURCES_JUDGE:.c=.o)
 EXECUTABLE_JUDGE=judge
 
-LIBS=$(shell pkg-config --libs glib-2.0)
+LIBS=$(shell pkg-config --libs glib-2.0) -L/usr/local/lib -lintl
 # XXX: Need to genericize - how to make platform independent? :
 ZMQ_LIBS=-L/usr/local/lib -lzmq
 
